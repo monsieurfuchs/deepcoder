@@ -1,22 +1,30 @@
 from flask import Flask, request, jsonify
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 app = Flask(__name__)
 
-model_name = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True, torch_dtype=torch.bfloat16)
+class ModelHandler:
+    def __init__(self):
+        self.tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained("deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct", trust_remote_code=True, max_length=1000, device_map='auto', torch_dtype=torch.bfloat16)
+
+    def generate_response(self, prompt):
+        inputs = self.tokenizer(prompt, return_tensors='pt').to(self.model.device)
+        outputs = self.model.generate(**inputs, max_length=1000)
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return response
+
+model_handler = ModelHandler()
 
 @app.route('/generate', methods=['POST'])
-def generate_text():
+def generate():
     data = request.json
-    prompt = data.get('prompt', '')
-    inputs = tokenizer(prompt, return_tensors='pt')
-    with torch.no_grad():
-        outputs = model.generate(**inputs, max_length=1000)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return response
+    prompt = data.get('prompt')
+    if not prompt:
+        return jsonify({'error': 'No prompt provided'}), 400
+    response = model_handler.generate_response(prompt)
+    return jsonify({'response': response})
 
 if __name__ == '__main__':
     app.run(port=5000)
