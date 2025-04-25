@@ -1,0 +1,5 @@
+# send an inference request to the server:
+curl --header "Content-Type: application/json" --request POST --data '{"input_text": "Build a website for a university called 'HSBI' with HTML, JavaScript and CSS. Run html, css and javascript inside a flask server on port 5003 and host 0.0.0.0. Provide only the runnable python code"}' http://localhost:5000/infer
+
+# get the result of an inference job:
+curl --header "Content-Type: application/json" --request GET  http://localhost:5000/result/<job-id>
