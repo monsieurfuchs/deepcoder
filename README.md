@@ -59,9 +59,9 @@ First let's import the necessary packages.
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 ```
-Now let us define the model we want to use. For a first try, let's take the Phi-3-mini model with 3 Billion parameters which is pretty small and cpu-friendly. We identify the model by a 'checkpoint' string. The transformer package will then download the model for us. You can explore a huge variety of models and their checkpoints on huggingface.com. For example you can find the quen2 model for text-to-code generation here: https://huggingface.co/microsoft/Phi-3-mini-128k-instruct 
+Now let us define the model we want to use. For a first try, let's take the Quen2 instruct model with only 500 Million parameters which is pretty small and cpu-friendly. We identify the model by a 'checkpoint' string. The transformer package will then download the model for us. You can explore a huge variety of models and their checkpoints on huggingface.com. For example you can find the quen2 model for text-to-code generation here: https://huggingface.co/Qwen/Qwen2-0.5B-Instruct 
 ```
-model_checkpoint = "microsoft/Phi-3-mini-128k-instruct"
+model_checkpoint = "Qwen/Qwen2-0.5B-Instruct"
 ```
 Initialize the tokenizer. The parameter trust_remote_code allows python to automatically download necessary stuff in the background. Having the transformers library download tokenizers, models and other code in the background is the usual way to work with that library. Once everything is downloaded and present on the system, the models etc. are persisted on the local machine and quickly loaded from there. The library functions first check if the models are available on the local machine otherwise they are downloaded from remote locations.
 ```
@@ -75,15 +75,15 @@ Now we are ready to use the model and formulate a prompt:
 
 ```
 prompt = """
-   Create a web page with HTML and JavaScript to calculate the area of a circle.
-   Publish the web page with flask on port 5001. Embed the HTML and JavaScript
-   into the python code of the flask server.
-   """     
+   Create runnable python code to calculate the area
+   of a circle and provide a flask endpoint for it
+   """
 ```
+
 We tokenize the prompt and feed the tokenization result into the model.
 ```
 inputs = tokenizer(prompt, return_tensors='pt')
-outputs = model.generate(**inputs, max_length=1000)
+outputs = model.generate(**inputs, max_length=5000)
 ```
 Now the model has generated a tokenized output that we can decode to human-processable output.
 
@@ -91,5 +91,31 @@ Now the model has generated a tokenized output that we can decode to human-proce
 result = tokenizer.decode(outputs[0], skip_special_tokens=True)
 ```
 
+Try the same procedure with a more advanced prompt and let's see how this small model performs:
+
+```
+prompt = """
+   Create a web page with HTML and JavaScript to calculate the area of a circle.
+   Publish the web page with flask on port 5001. Embed the HTML and JavaScript
+   into the python code of the flask server.
+   """
+```
+
+## top_k, top_p and temperature
+If you run the previous prompt multiple times you will notice that the model generates different outputs. Normally you wouldn't expect this because once a neural network is trained its weights are fixed and we should expect the same output for the same input, shouldn't we? The reason for this benaviour is that the designers of the model wanted it to act this way to make the model apper more "creative" or human-like. We can influence that behavior with three parameters:
+
+* top_k tells the model to consider only the top k next tokens ordered by their highest probability
+* top_p is more inclusive than top_k and considers all tokens that sum up to a cummulatitive propability above some threshold
+* temperature is a scaling factor to squeeze or broaden the probability distribution among the tokens. by this small probabilities may be punished or lifted.
+
+For example - if you choose top_k=1, the modell is likely to process thes same output over multiple inferences on the same input.
+
+## More advanced models
+The small Quen2 model often does not provide functional and instantly runnable code. It makes mistakes, forgets things and seems to struggle with complex tasks - espcially when combining two or multiple tasks from different domains - like publishing HTML and JavaScript within a pythonic flask server. Let us therefore now try a much larger model - namely the Deepseek Coder model by repeating the above steps but with another checkpoint:
+
+```
+deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
+```
+Note that this is the light version of the model with 15.7 billion parameters. The full model (deepseek-ai/DeepSeek-Coder-V2-Instruct) has even 236 Billion parameters and eats up about 500 GB.
 
 
