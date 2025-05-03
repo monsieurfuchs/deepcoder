@@ -118,4 +118,26 @@ deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
 ```
 Note that this is the light version of the model with 15.7 billion parameters. The full model (deepseek-ai/DeepSeek-Coder-V2-Instruct) has even 236 Billion parameters and eats up about 500 GB.
 
+Let us now have the model do something really sophisticated: we will tell the model to write python code in order to publish itself as a REST service so we can use it via HTTP request:
+
+```
+prompt = """
+        Write python code to provide a flask endpoint with path /infer on port 5000 and host 0.0.0.0
+        to the deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct model.
+        Load the model in the constructor. Use trust_remote_code=True, max_length=5000, device_map='auto' and torch_dtype=torch.bfloat16.
+    
+        If a http requests comes in, put the job to infer on the model into a queue returning a counter as job id and process the jobs one after another.
+        When the job is finished, store its inference output with the job id. Use top_k=2 for generating the model output.
+        
+        Provide a second endpoint under the path /result with the job id as parameter to return the respective inference result as plain text, not json.
+        Remember all job ids. When the user asks for the result of a job id that exists but is not yet present in the results
+        return 'status = not ready' and the current position of the job in the queue to the user. If there is no such id, return 'no such job'.
+        
+        Provide a third endpoint under the root path returning a short description and usage explanation of the endpoints."""
+```
+Actually, we tell the model to perform what we hav done in the lines above. Let's repeat those steps with this prompt and the DeepSeek model. We will get an output like this:
+```
+
+```
+
 
