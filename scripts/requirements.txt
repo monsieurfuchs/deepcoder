@@ -1,4 +1,7 @@
 transformers==4.47.1
 torch==2.6.0
-flask
-accelerate
+accelerate==1.6.0
+Jinja2
+Flask
+WTForms
+
