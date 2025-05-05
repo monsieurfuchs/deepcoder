@@ -55,25 +55,25 @@ Any processing pipeline consists of the same steps:
 5. Again, use the tokenizer to translate the sequence of numbers into a sequence of words which is the final output.
 
 First let's import the necessary packages.
-```
+```python
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 ```
 Now let us define the model we want to use. For a first try, let's take the Quen2 instruct model with only 500 Million parameters which is pretty small and cpu-friendly. We identify the model by a 'checkpoint' string. The transformer package will then download the model for us. You can explore a huge variety of models and their checkpoints on huggingface.com. For example you can find the quen2 model for text-to-code generation here: https://huggingface.co/Qwen/Qwen2-0.5B-Instruct 
-```
+```python
 model_checkpoint = "Qwen/Qwen2-0.5B-Instruct"
 ```
 Initialize the tokenizer. The parameter trust_remote_code allows python to automatically download necessary stuff in the background. Having the transformers library download tokenizers, models and other code in the background is the usual way to work with that library. Once everything is downloaded and present on the system, the models etc. are persisted on the local machine and quickly loaded from there. The library functions first check if the models are available on the local machine otherwise they are downloaded from remote locations.
-```
+```python
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, trust_remote_code=True)
 ```
 Initialize the model. The parameter setting device_map='auto' indicates that we want the model to be automatically distributed to GPUs if available. This is convinient for large models as they may be split across multiple GPUs in parallel.
-```
+```python
 model = AutoModelForCausalLM.from_pretrained(model_checkpoint, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto')
 ```
 Now we are ready to use the model and formulate a prompt: 
 
-```
+```python
 prompt = """
    Create runnable python code to calculate the area
    of a circle and provide a flask endpoint for it
@@ -81,19 +81,19 @@ prompt = """
 ```
 
 We tokenize the prompt and feed the tokenization result into the model.
-```
+```python
 inputs = tokenizer(prompt, return_tensors='pt')
 outputs = model.generate(**inputs, max_length=5000)
 ```
 Now the model has generated a tokenized output that we can decode to human-processable output.
 
-```
+```python
 result = tokenizer.decode(outputs[0], skip_special_tokens=True)
 ```
 
 Try the same procedure with a more advanced prompt and let's see how this small model performs:
 
-```
+```python
 prompt = """
    Create a web page with HTML and JavaScript to calculate the area of a circle.
    Publish the web page with flask on port 5001. Embed the HTML and JavaScript
@@ -102,7 +102,7 @@ prompt = """
 ```
 
 ## top_k, top_p and temperature
-If you run the previous prompt multiple times you will notice that the model generates different outputs. Normally you wouldn't expect this because once a neural network is trained its weights are fixed and we should expect the same output for the same input, shouldn't we? The reason for this benaviour is that the designers of the model wanted it to act this way to make the model apper more "creative" or human-like. We can influence that behavior with three parameters:
+If you run the previous prompt multiple times you will notice that the model generates different outputs. Normally you wouldn't expect this because once a neural network is trained its weights are fixed and we should expect the same output for the same input, shouldn't we? The reason for this benaviour is that the designers of the model wanted it to act this way to make the model apper more "creative" or human-like. We can influence that behavior with three parameters with the model.generate() method:
 
 * top_k tells the model to consider only the top k next tokens ordered by their highest probability
 * top_p is more inclusive than top_k and considers all tokens that sum up to a cummulatitive propability above some threshold
@@ -113,31 +113,34 @@ For example - if you choose top_k=1, the modell is likely to process thes same o
 ## More advanced models
 The small Quen2 model often does not provide functional and instantly runnable code. It makes mistakes, forgets things and seems to struggle with complex tasks - espcially when combining two or multiple tasks from different domains - like publishing HTML and JavaScript within a pythonic flask server. Let us therefore now try a much larger model - namely the Deepseek Coder model by repeating the above steps but with another checkpoint:
 
-```
+```python
 deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
 ```
 Note that this is the light version of the model with 15.7 billion parameters. The full model (deepseek-ai/DeepSeek-Coder-V2-Instruct) has even 236 Billion parameters and eats up about 500 GB.
 
 Let us now have the model do something really sophisticated: we will tell the model to write python code in order to publish itself as a REST service so we can use it via HTTP request:
 
-```
+```python
 prompt = """
         Write python code to provide a flask endpoint with path /infer on port 5000 and host 0.0.0.0
         to the deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct model.
-        Load the model in the constructor. Use trust_remote_code=True, max_length=5000, device_map='auto' and torch_dtype=torch.bfloat16.
+        Load the model outside the flask server at the start. Use trust_remote_code=True, max_length=7000, device_map='auto' and torch_dtype=torch.bfloat16.
     
-        If a http requests comes in, put the job to infer on the model into a queue returning a counter as job id and process the jobs one after another.
-        When the job is finished, store its inference output with the job id. Use top_k=2 for generating the model output.
+        Under the endpoind /infer a user can submit a text prompt to be processed by the model.
+        The result should be returned asi a plain text - not json. in the HTTP header set Content-Type: text/plain
+        Lock the model in order to guarantee that only one prompt is processed at a time.
         
-        Provide a second endpoint under the path /result with the job id as parameter to return the respective inference result as plain text, not json.
-        Remember all job ids. When the user asks for the result of a job id that exists but is not yet present in the results
-        return 'status = not ready' and the current position of the job in the queue to the user. If there is no such id, return 'no such job'.
-        
-        Provide a third endpoint under the root path returning a short description and usage explanation of the endpoints."""
+        Create an html form under the root path / with a text area to submit a prompt to the /infer endpoint.
+        Provide the form under the root path of the server and embed the html as string directly into the python code.
+
+        Create a fourth endpoint under /info providing explanations about how transformer models work - include the
+        following image: https://production-media.paperswithcode.com/methods/new_ModalNet-21.jpg
+        """
 ```
-Actually, we tell the model to perform what we hav done in the lines above. Let's repeat those steps with this prompt and the DeepSeek model. We will get an output like this:
-```
+Actually, we tell the model to perform what we have done by hand in the previous sections. Let's repeat those steps with this prompt and the DeepSeek model. We will get an output like this:
+```python
 
 ```
+Copy the python code to a file like server.py and run it. Now you hopefully have a functional web interface to perform text-to-code inference with a generative ai model. Think about waht we have done so far: we made an ai model write code to publish itself on a web server where now we can generate other code with it. Isn't that crazy?
 
 
