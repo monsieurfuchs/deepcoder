@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
 # define the model
-model_checkpoint = "Qwen/Qwen2-0.5B-Instruct"
+model_checkpoint = "Qwen/Qwen2.5-0.5B-Instruct"
 
 # load the tokenizer fitting the model
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, trust_remote_code=True)
