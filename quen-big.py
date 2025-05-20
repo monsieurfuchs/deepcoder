@@ -30,10 +30,12 @@ prompt = """
    Use max_length=7000 for the generate method of the model.
    
    Create a form with a text area to submit a prompt to the model.
+   Create a headline for the form and align everything to the center.
    Also include text inputs for the model parameters top_k, top_p, temperature and do_sample.
    Pass those parameters to the generate method of the model.
    Provide the endpoint for the form under the root path /. 
    Return the HTML directly as string in the response of the http request.
+
 """
 
 # tokenize the text prompt. Put the tokenized input
