@@ -23,8 +23,8 @@ prompt = """
    Load the model outside the flask server at the start.                                                                                               
    Use trust_remote_code=True, device_map='auto' and torch_dtype=torch.bfloat16.                 
 
-   Create an endpoind /inferto submit a text prompt the model.                            
-   The result should be returned asi a plain text - not json.                                                
+   Create an endpoind /inferto submit a text prompt to the model.                            
+   The result should be returned as plain text - not json.                                                
    In the HTTP header set Content-Type: text/plain
    Create an explicit lock on the model in order to guarantee that only one prompt is processed at a time.
    Use max_length=7000 for the generate method of the model.
@@ -41,7 +41,7 @@ prompt = """
 inputs = tokenizer(prompt, return_tensors='pt').to(model.device)
 
 # generate the output with the model
-outputs = model.generate(**inputs, do_sample=False, max_length=7000)
+outputs = model.generate(**inputs, max_length=7000)
 
 # decode the output with the tokenizer
 result = tokenizer.decode(outputs[0], skip_special_tokens=True)
